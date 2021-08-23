@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- head definitions go here -->
+    <link rel="stylesheet" href="video.css">
+</head>
+
+<body>
+    <script>
+        var GoogleAuth;
+        var SCOPE = 'https://www.googleapis.com/auth/youtube.force-ssl';
+        var apiKey = 'AIzaSyD-iBTe8e9MsHDOcOsywGxIBkt2baNUO-E';
+        function handleClientLoad() {
+            // Load the API's client and auth2 modules.
+            // Call the initClient function after the modules load.
+            gapi.load('client:auth2', initClient);
+        }
+
+        function initClient() {
+            // In practice, your app can retrieve one or more discovery documents.
+            var discoveryUrl = 'https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest';
+
+            // Initialize the gapi.client object, which app uses to make API requests.
+            // Get API key and client ID from API Console.
+            // 'scope' field specifies space-delimited list of access scopes.
+            gapi.client.init({
+                'apiKey': apiKey,
+                'clientId': '1055882268181-ga4c6llimjp4uo5s17d5meokfajqkvig.apps.googleusercontent.com',
+                'discoveryDocs': [discoveryUrl],
+                'scope': SCOPE
+            }).then(function () {
+                GoogleAuth = gapi.auth2.getAuthInstance();
+
+                // Listen for sign-in state changes.
+                GoogleAuth.isSignedIn.listen(updateSigninStatus);
+
+                // Handle initial sign-in state. (Determine if user is already signed in.)
+                var user = GoogleAuth.currentUser.get();
+                setSigninStatus();
+
+                // Call handleAuthClick function when user clicks on
+                //      "Sign In/Authorize" button.
+                $('#sign-in-or-out-button').click(function () {
+                    handleAuthClick();
+                });
+                $('#revoke-access-button').click(function () {
+                    revokeAccess();
+                });
+            });
+        }
+
+        function handleAuthClick() {
+            if (GoogleAuth.isSignedIn.get()) {
+                // User is authorized and has clicked "Sign out" button.
+                GoogleAuth.signOut();
+            } else {
+                // User is not signed in. Start Google auth flow.
+                GoogleAuth.signIn();
+            }
+        }
+
+        function revokeAccess() {
+            GoogleAuth.disconnect();
+        }
+
+        function setSigninStatus() {
+            var user = GoogleAuth.currentUser.get();
+            console.log(user)
+            var isAuthorized = user.hasGrantedScopes(SCOPE);
+            console.log(isAuthorized)
+
+            if (isAuthorized) {
+                localStorage.setItem('GAUTH', JSON.stringify(user.Zb));
+                signinCallback(user.Zb);
+                $('#sign-in-or-out-button').html('Sign out');
+                $('#revoke-access-button').css('display', 'inline-block');
+                $('#auth-status').html('You are currently signed in and have granted ' +
+                    'access to this app.');
+            } else {
+                $('#sign-in-or-out-button').html('Sign In/Authorize');
+                $('#revoke-access-button').css('display', 'none');
+                $('#auth-status').html('You have not authorized this app or you are ' +
+                    'signed out.');
+            }
+        }
+
+        function updateSigninStatus() {
+            setSigninStatus();
+        }
+    </script>
+
+    <button id="sign-in-or-out-button" style="margin-left: 25px">Sign In/Authorize</button>
+    <button id="revoke-access-button" style="display: none; margin-left: 25px">Revoke access</button>
+
+    <div id="auth-status" style="display: inline; padding-left: 25px"></div>
+    <hr>
+
+
+    <div class="post-sign-in">
+        <div>
+            <img id="channel-thumbnail">
+            <span id="channel-name"></span>
+        </div>
+
+        <div>
+            <label for="title">Title:</label>
+            <input id="title" type="text" value="Default Title">
+        </div>
+        <div>
+            <label for="description">Description:</label>
+            <textarea id="description">Default description</textarea>
+        </div>
+        <div>
+            <label for="privacy-status">Privacy Status:</label>
+            <select id="privacy-status">
+                <option>public</option>
+                <option>unlisted</option>
+                <option>private</option>
+            </select>
+        </div>
+
+        <div>
+            <input input type="file" id="file" class="button" accept="video/*">
+            <button id="button">Upload Video</button>
+            <div class="during-upload">
+                <p><span id="percent-transferred"></span>% done (<span id="bytes-transferred"></span>/<span
+                        id="total-bytes"></span> bytes)</p>
+                <progress id="upload-progress" max="1" value="0"></progress>
+            </div>
+
+            <div class="post-upload">
+                <p>Uploaded video with id <span id="video-id"></span>. Polling for status...</p>
+                <ul id="post-upload-status"></ul>
+                <div id="player"></div>
+            </div>
+            <p id="disclaimer">By uploading a video, you certify that you own all rights to the content or that you are
+                authorized by the owner to make the content publicly available on YouTube, and that it otherwise
+                complies with the YouTube Terms of Service located at <a href="http://www.youtube.com/t/terms"
+                    target="_blank">http://www.youtube.com/t/terms</a></p>
+        </div>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+        <script async defer src="https://apis.google.com/js/api.js" onload="this.onload=function(){};handleClientLoad()"
+            onreadystatechange="if (this.readyState === 'complete') this.onload()">
+            </script>
+
+        <script src="cors_upload.js"></script>
+        <script src="upload.js"></script>
+
+
+        <script>
+            // $(document).ready(function () {
+            //     let token = JSON.parse(localStorage.getItem('GAUTH'))
+            //     console.log(token)
+            //     if (token) {
+            //         signinCallback(token);
+            //     }
+
+            // })
+        // $('#call').click(function () {
+        //     console.log('callYoutubeApi');
+
+        //     var file = document.getElementById("file").files[0];
+        //     if (file) {
+        //         var reader = new FileReader();
+        //         reader.readAsText(file);
+        //         reader.onload = function (evt) {
+        //             // console.log(evt.target.result);
+        //             // $('#content').html(evt.target.result);
+
+        //             ajaxCall(evt.target.result)
+        //         }
+        //         reader.onerror = function (evt) {
+        //             console.log("error reading file");
+        //         }
+        //     } else {
+        //         ajaxCall()
+        //     }
+
+        // })
+
+        // function ajaxCall(content = null) {
+
+        //     let data = {
+        //         "snippet": {
+        //             "title": "testing-dmo",
+        //             "description": "testin-dmog"
+        //         },
+        //         'data': content,
+        //         'mimeType': 'application/octet-stream',
+        //         'uploadType': 'multipart'
+        //     }
+
+        //     let token = JSON.parse(localStorage.getItem('GAUTH'))
+        //     console.log(token)
+
+
+        //     let url = 'https://youtube.googleapis.com/youtube/v3/videos?part=snippet%2CcontentDetails%2Cstatistics&myRating=like&key=' + apiKey;
+        //     let type = 'GET';
+
+        //     //replace
+        //     url = 'https://youtube.googleapis.com/youtube/v3/videos?part=snippet&part=status&key=' + apiKey;
+        //     type = 'POST';
+
+        //     // /replace checnnale list
+        //     // url = 'https://youtube.googleapis.com/youtube/v3/channels?part=snippet%2CcontentDetails%2Cstatistics&mine=true&key=' + apiKey;
+
+        //     $.ajax({
+        //         url: url,
+        //         type: type,
+        //         headers: {
+        //             'Authorization': 'Bearer ' + token.access_token,
+        //             'Accept': 'application/json',
+        //             'Content-Type': 'application/json',
+        //             'Content-Type': 'application/octet-stream'
+        //         },
+        //         enctype: 'multipart/form-data',
+        //         data: JSON.stringify(data),
+        //         processData: false,
+        //         contentType: false,
+        //         success: function (result, textStatus, xhr) {
+        //             console.log(result)
+        //         }, error: function (error) {
+        //             console.log(error)
+        //         }
+
+        //     })
+        // }
+        </script>
+</body>
+
+</html>
